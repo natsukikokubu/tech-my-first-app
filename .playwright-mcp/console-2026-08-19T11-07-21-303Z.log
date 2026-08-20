@@ -1,0 +1,7 @@
+[    1061ms] [ERROR] Permissions policy violation: unload is not allowed in this document. @ https://s.yimg.jp/images/news-web/versions/20260819-a6ea045/pc/js/top.js:2
+[    1826ms] [ERROR] [yjplayer][ERROR] FAILED: Initialize @ https://s.yimg.jp/images/media/video/player/js/embed_2.0.0_001.min.js:1
+[    1954ms] [WARNING] Allow attribute will take precedence over 'allowfullscreen'. @ https://yads.c.yimg.jp/js/yads-async.js:0
+[    2228ms] [WARNING] [GPT] Slot.setTargeting is deprecated, use Slot.setConfig({targeting: ...}) instead.
+https://goo.gle/gpt-message#171 @ https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202608120101/pubads_impl.js?cb=122880453:18
+[    2230ms] [WARNING] [GPT] PubAdsService.collapseEmptyDivs is deprecated, use googletag.setConfig({collapseDiv: ...}) instead.
+https://goo.gle/gpt-message#170 @ https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202608120101/pubads_impl.js?cb=122880453:18

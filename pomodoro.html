@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポモドーロタイマー</title>
+<style>
+  :root {
+    --bg: #faf6ef;
+    --card: #ffffff;
+    --ink: #2b2620;
+    --sub: #8a8172;
+    --line: #ece4d6;
+    --tomato: #e0452f;
+    --tomato-deep: #b8341f;
+    --tomato-soft: #fbe4df;
+    --leaf: #468a56;
+    --leaf-deep: #326840;
+    --leaf-soft: #e2f0e3;
+    --accent: var(--tomato);
+    --accent-deep: var(--tomato-deep);
+    --accent-soft: var(--tomato-soft);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Hiragino Sans", sans-serif;
+    color: var(--ink);
+    padding: 24px 16px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 360px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 36px 28px 32px;
+    text-align: center;
+    box-shadow: 0 30px 60px -32px rgba(43, 38, 32, 0.28);
+    transition: box-shadow 0.4s ease;
+  }
+
+  .mode-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 24px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    transition: background 0.4s ease, color 0.4s ease;
+  }
+
+  .mode-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: background 0.4s ease;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    margin: 0 auto 28px;
+  }
+
+  .ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .ring-track {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 10;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.95s linear, stroke 0.4s ease;
+  }
+
+  .time-display {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-monospace, SFMono-Regular, "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: clamp(44px, 12vw, 56px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  button {
+    flex: 1 1 0;
+    font: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    padding: 13px 0;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--accent-deep);
+    outline-offset: 2px;
+  }
+
+  #startBtn {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  #startBtn:hover:not(:disabled) {
+    background: var(--accent-deep);
+  }
+
+  #stopBtn {
+    background: var(--card);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+
+  #stopBtn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+
+  #resetBtn {
+    background: transparent;
+    color: var(--sub);
+  }
+
+  #resetBtn:hover:not(:disabled) {
+    color: var(--ink);
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <p class="mode-label" id="modeLabel" aria-live="polite">
+      <span class="mode-dot" aria-hidden="true"></span>
+      <span id="modeText">集中モード</span>
+    </p>
+
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="90"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="90"></circle>
+      </svg>
+      <div class="time-display" id="timeDisplay">25:00</div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">開始</button>
+      <button id="stopBtn" disabled>停止</button>
+      <button id="resetBtn">リセット</button>
+    </div>
+  </main>
+
+  <script>
+    const FOCUS_SECONDS = 25 * 60;
+    const BREAK_SECONDS = 5 * 60;
+    const CIRCUMFERENCE = 2 * Math.PI * 90;
+
+    const timeDisplay = document.getElementById("timeDisplay");
+    const modeText = document.getElementById("modeText");
+    const ringProgress = document.getElementById("ringProgress");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const root = document.documentElement;
+
+    let mode = "focus";
+    let timeLeft = FOCUS_SECONDS;
+    let timerId = null;
+    let audioCtx = null;
+
+    function modeTotal() {
+      return mode === "focus" ? FOCUS_SECONDS : BREAK_SECONDS;
+    }
+
+    function render() {
+      const m = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+      const s = String(timeLeft % 60).padStart(2, "0");
+      timeDisplay.textContent = `${m}:${s}`;
+
+      modeText.textContent = mode === "focus" ? "集中モード" : "休憩モード";
+      document.documentElement.style.setProperty(
+        "--accent", mode === "focus" ? "var(--tomato)" : "var(--leaf)"
+      );
+      document.documentElement.style.setProperty(
+        "--accent-deep", mode === "focus" ? "var(--tomato-deep)" : "var(--leaf-deep)"
+      );
+      document.documentElement.style.setProperty(
+        "--accent-soft", mode === "focus" ? "var(--tomato-soft)" : "var(--leaf-soft)"
+      );
+
+      const elapsedFraction = 1 - timeLeft / modeTotal();
+      ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE * elapsedFraction);
+    }
+
+    function playChime() {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const now = audioCtx.currentTime;
+      [660, 880, 1046].forEach((freq, i) => {
+        const start = now + i * 0.22;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(0.3, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.24);
+      });
+    }
+
+    function tick() {
+      timeLeft--;
+      if (timeLeft < 0) {
+        if (mode === "focus") playChime();
+        mode = mode === "focus" ? "break" : "focus";
+        timeLeft = modeTotal() - 1;
+      }
+      render();
+    }
+
+    function start() {
+      if (timerId) return;
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      timerId = setInterval(tick, 1000);
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    }
+
+    function stop() {
+      clearInterval(timerId);
+      timerId = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    function reset() {
+      stop();
+      mode = "focus";
+      timeLeft = FOCUS_SECONDS;
+      render();
+    }
+
+    startBtn.addEventListener("click", start);
+    stopBtn.addEventListener("click", stop);
+    resetBtn.addEventListener("click", reset);
+
+    render();
+  </script>
+</body>
+</html>
